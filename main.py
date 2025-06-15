@@ -191,14 +191,16 @@ while iteration < MAX_ITERATIONS:
 
     # Add all candidate contents to the conversation
     for candidate in response.candidates:
-        messages.append(candidate.content)
+        if candidate.content is not None:
+            messages.append(candidate.content)
 
     # Gather all function call parts from all candidates, in order
     function_call_parts = []
     for candidate in response.candidates:
-        for part in candidate.content.parts:
-            if hasattr(part, "function_call") and part.function_call is not None:
-                function_call_parts.append(part.function_call)
+        if candidate.content is not None and candidate.content.parts:
+            for part in candidate.content.parts:
+                if hasattr(part, "function_call") and part.function_call is not None:
+                    function_call_parts.append(part.function_call)
 
     # If there are function calls, respond to each in order
     if function_call_parts:
@@ -208,13 +210,15 @@ while iteration < MAX_ITERATIONS:
         iteration += 1
         continue  # Go to next iteration
     else:
-        # No function call, print all text parts from all candidates and break
+    # No function call, print all text parts from all candidates and break
         for candidate in response.candidates:
-            for part in candidate.content.parts:
-                if hasattr(part, "text") and part.text:
-                    print(part.text)
+            if candidate.content is not None and candidate.content.parts:
+                for part in candidate.content.parts:
+                    if hasattr(part, "text") and part.text:
+                        print(part.text)
         break
 else:
+    
     print("Max iterations reached. Exiting.")
 
 sys.exit(0)
