@@ -179,43 +179,42 @@ def call_function(function_call_part, verbose=False):
         ],
     )
 
-response = client.models.generate_content(
-    model='gemini-2.0-flash-001',
-    contents=messages,
-    config=config,
-)
+MAX_ITERATIONS = 20
+iteration = 0
 
-if hasattr(response, "function_calls") and response.function_calls:
-    messages.append(response.candidates[0].content)
-    
-    
-    function_response_parts = []
-    for function_call_part in response.function_calls:
-        function_call_result = call_function(function_call_part, verbose=verbose)
-        if (
-            not function_call_result.parts
-            or not hasattr(function_call_result.parts[0], "function_response")
-            or not hasattr(function_call_result.parts[0].function_response, "response")
-        ):
-            raise RuntimeError("Fatal: No function response returned!")
-        if verbose:
-            print(f"-> {function_call_result.parts[0].function_response.response}")
-        function_response_parts.extend(function_call_result.parts)
-    
-    
-    function_responses_content = types.Content(
-        role="tool",
-        parts=function_response_parts
-    )
-    messages.append(function_responses_content)
-    
-    final_response = client.models.generate_content(
+while iteration < MAX_ITERATIONS:
+    response = client.models.generate_content(
         model='gemini-2.0-flash-001',
         contents=messages,
         config=config,
     )
-    print(final_response.candidates[0].content.parts[0].text)
+
+    # Add all candidate contents to the conversation
+    for candidate in response.candidates:
+        messages.append(candidate.content)
+
+    # Gather all function call parts from all candidates, in order
+    function_call_parts = []
+    for candidate in response.candidates:
+        for part in candidate.content.parts:
+            if hasattr(part, "function_call") and part.function_call is not None:
+                function_call_parts.append(part.function_call)
+
+    # If there are function calls, respond to each in order
+    if function_call_parts:
+        for function_call_part in function_call_parts:
+            function_call_result = call_function(function_call_part, verbose=verbose)
+            messages.append(function_call_result)
+        iteration += 1
+        continue  # Go to next iteration
+    else:
+        # No function call, print all text parts from all candidates and break
+        for candidate in response.candidates:
+            for part in candidate.content.parts:
+                if hasattr(part, "text") and part.text:
+                    print(part.text)
+        break
 else:
-    print(response.candidates[0].content.parts[0].text)
+    print("Max iterations reached. Exiting.")
 
 sys.exit(0)
