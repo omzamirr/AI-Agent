@@ -1,3 +1,7 @@
+# DISCLAIMER
+
+This is not perfect by any means you may need to debug the main.py file to get it to do what you want it to do. This is usually because of how gemini reads and understands text and not necessarily because a lack of error handling in the code.
+
 # AI Agent Calculator
 
 This project is an **AI-powered coding agent** that can interact with a codebase, execute code, read and write files, and answer questions about the project using the Gemini LLM API. It is designed to operate in a secure, sandboxed environment and can be extended to support additional tools and workflows.
